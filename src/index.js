@@ -22,17 +22,9 @@ app.use(cookieParser());
 const prisma = new PrismaClient();
 app.locals.prisma = prisma;
 
-app.use("/health", healthRouter);
-app.use("/attendance", attendanceRouter);
-app.use("/auth", authRouter);
+// --- ROUTES ---
 
-const port = process.env.PORT || 4000;
-app.listen(port, () => {
-  console.log(`Backend listening on ${port}`);
-});
-
-// In src/index.js, add this before app.listen:
-
+// 1. Root Route (To fix Vercel 404s)
 app.get("/", (req, res) => {
   res.send(`
     <h1>Attendance Backend is Running! 🚀</h1>
@@ -44,3 +36,17 @@ app.get("/", (req, res) => {
     </ul>
   `);
 });
+
+// 2. App Routes
+app.use("/health", healthRouter);
+app.use("/attendance", attendanceRouter);
+app.use("/auth", authRouter);
+
+// --- START SERVER ---
+const port = process.env.PORT || 4000;
+app.listen(port, () => {
+  console.log(`Backend listening on ${port}`);
+});
+
+// --- EXPORT FOR VERCEL ---
+module.exports = app;
