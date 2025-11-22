@@ -7,7 +7,6 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
 
 // POST /auth/google
-// POST /auth/google
 router.post("/google", async (req, res) => {
   const prisma = req.app.locals.prisma;
   const { code } = req.body;
@@ -86,11 +85,13 @@ router.post("/google", async (req, res) => {
     );
 
     // Set JWT in HTTP-only cookie
+    // CRITICAL: Must be sameSite='none' and secure=true for cross-site usage
     res.cookie("sessionToken", sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: true, // Always secure in production/Vercel
+      sameSite: "none", // Required for cross-site cookies
       maxAge: 30 * 60 * 1000, // 30 minutes
+      path: '/' // Ensure cookie is valid for all paths
     });
 
     res.json({
@@ -143,7 +144,12 @@ router.get("/me", async (req, res) => {
 
 // POST /auth/logout
 router.post("/logout", (req, res) => {
-  res.clearCookie("sessionToken");
+  res.clearCookie("sessionToken", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: '/'
+  });
   res.json({ ok: true });
 });
 
