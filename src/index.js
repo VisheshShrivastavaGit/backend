@@ -30,3 +30,17 @@ const port = process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`Backend listening on ${port}`);
 });
+
+// In src/index.js, add this before app.listen:
+
+app.get("/", (req, res) => {
+  res.send(`
+    <h1>Attendance Backend is Running! 🚀</h1>
+    <p>Available routes:</p>
+    <ul>
+      <li>/health</li>
+      <li>/auth/google</li>
+      <li>/attendance</li>
+    </ul>
+  `);
+});
