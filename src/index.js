@@ -12,10 +12,35 @@ const authRouter = require("./routes/auth");
 const app = express();
 
 app.use(helmet());
+
+// Enhanced CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
-  credentials: true
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      process.env.FRONTEND_URL, 
+      "http://localhost:5173", 
+      "https://attendance-tracker-frontend-three.vercel.app", // Hardcoded production frontend
+      "https://attendance-tracker-frontend-8ce2219bab3d8f0bdc296e2d81be95cc8d50c90c.vercel.app" // Your specific deployment URL if needed
+    ];
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || !process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      console.log("Blocked by CORS:", origin); // Log blocked origins for debugging
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Essential for cookies
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
+
 app.use(express.json());
 app.use(cookieParser());
 
