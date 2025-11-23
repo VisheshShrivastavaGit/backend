@@ -37,6 +37,7 @@ model Course {
   thatday      Day_Course[]
 
   @@unique([userId, IndivCourse])
+  @@index([userId])
 }
 
 model Days {
@@ -54,4 +55,5 @@ model Day_Course {
   assignedBy String
 
   @@id([dayId, courseId])
+  @@index([courseId])
 }
