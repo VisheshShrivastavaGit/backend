@@ -52,7 +52,7 @@ app.locals.prisma = prisma;
 // 1. Root Route (To fix Vercel 404s)
 app.get("/", (req, res) => {
   res.send(`
-    <h1>Attendance Backend is Running! 🚀</h1>
+    <h1>Attendance Backend is Running!</h1>
     <p>Available routes:</p>
     <ul>
       <li>/health</li>
