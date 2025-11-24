@@ -23,36 +23,19 @@ model User {
 }
 
 model Course {
-  id           Int          @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   IndivCourse  String
   timeofcourse String
-  Totaldays    Int          @default(35)
-  present      Int          @default(0)
-  absent       Int          @default(0)
-  cancelled    Int          @default(0)
-  criteria     Int          @default(75)
+  Totaldays    Int      @default(35)
+  present      Int      @default(0)
+  absent       Int      @default(0)
+  cancelled    Int      @default(0)
+  criteria     Int      @default(75)
   userId       Int
-  userDetails  User         @relation(fields: [userId], references: [id])
-  thatday      Day_Course[]
+  userDetails  User     @relation(fields: [userId], references: [id])
+  days         String[]
 
   @@unique([userId, IndivCourse])
   @@index([userId])
-}
-
-model Days {
-  id      Int          @id @default(autoincrement())
-  day     String       @unique
-  courses Day_Course[]
-}
-
-model Day_Course {
-  courseId   Int
-  course     Course   @relation(fields: [courseId], references: [id])
-  dayId      Int
-  day        Days     @relation(fields: [dayId], references: [id])
-  assignedAt DateTime @default(now())
-  assignedBy String
-
-  @@id([dayId, courseId])
-  @@index([courseId])
+  @@index([IndivCourse])
 }

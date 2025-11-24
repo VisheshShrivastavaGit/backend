@@ -17,16 +17,7 @@ router.post("/:userId", async (req, res) => {
     days = [],
   } = req.body;
 
-  const datacreated = days.map((val) => ({
-    assignedBy: String(req.params.userId),
-    assignedAt: new Date(),
-    day: {
-      connectOrCreate: {
-        where: { day: val },
-        create: { day: val },
-      },
-    },
-  }));
+
 
   if (!IndivCourse || typeof IndivCourse !== "string" || !IndivCourse.trim()) {
     return res.status(400).json({
@@ -52,21 +43,11 @@ router.post("/:userId", async (req, res) => {
         cancelled: Number(cancelled) || 0,
         criteria: Number(criteria) || 75,
         userId: Number(req.params.userId),
-        thatday: {
-          create: datacreated,
-        },
+        days: days || [],
       },
     });
 
-    const full = await prisma.course.findUnique({
-      where: { id: course.id },
-      include: { thatday: { include: { day: true } } },
-    });
-    const out = {
-      ...full,
-      days: (full.thatday || []).map((tc) => tc.day.day),
-    };
-    res.status(201).json({ ok: true, data: out });
+    res.status(201).json({ ok: true, data: course });
   } catch (err) {
     console.error(err);
     if (err && err.code === "P2002")
@@ -132,30 +113,14 @@ router.put("/:userId/:courseId", requireAuth, async (req, res) => {
           .json({ error: "Course with that name already exists." });
     }
 
+    if (req.body.days !== undefined) {
+      payload.days = Array.isArray(req.body.days) ? req.body.days : [];
+    }
+
     const updated = await prisma.course.update({
       where: { id: courseId },
       data: payload,
     });
-
-    if (req.body.days !== undefined) {
-      const days = Array.isArray(req.body.days) ? req.body.days : [];
-      await prisma.day_Course.deleteMany({ where: { courseId } });
-      for (const d of days) {
-        if (!d) continue;
-        const dayRec = await prisma.days.upsert({
-          where: { day: d },
-          update: {},
-          create: { day: d },
-        });
-        await prisma.day_Course.create({
-          data: {
-            courseId,
-            dayId: dayRec.id,
-            assignedBy: String(req.user.id),
-          },
-        });
-      }
-    }
 
     // Google Calendar Integration - Create event when attendance is marked
     const attendanceChanged =
@@ -182,12 +147,7 @@ router.put("/:userId/:courseId", requireAuth, async (req, res) => {
       });
     }
 
-    const full = await prisma.course.findUnique({
-      where: { id: courseId },
-      include: { thatday: { include: { day: true } } },
-    });
-    const out = { ...full, days: (full.thatday || []).map((tc) => tc.day.day) };
-    res.json({ ok: true, data: out });
+    res.json({ ok: true, data: updated });
   } catch (err) {
     console.error(err);
     if (err && err.code === "P2002")
@@ -221,7 +181,7 @@ router.delete("/:userId/:courseId", requireAuth, async (req, res) => {
         .json({ error: "You do not have permission to delete this course." });
 
     // Delete related Day_Course records first to avoid foreign key constraint error
-    await prisma.day_Course.deleteMany({ where: { courseId } });
+
 
     // Now delete the course
     await prisma.course.delete({ where: { id: courseId } });
@@ -251,7 +211,7 @@ router.delete("/:userId", requireAuth, async (req, res) => {
     const ids = courses.map((c) => c.id);
     if (ids.length === 0) return res.json({ ok: true });
 
-    await prisma.day_Course.deleteMany({ where: { courseId: { in: ids } } });
+
     await prisma.course.deleteMany({ where: { id: { in: ids } } });
     res.json({ ok: true });
   } catch (err) {
@@ -270,13 +230,8 @@ router.get("/:userId", async (req, res) => {
     const courses = await prisma.course.findMany({
       where: { userId },
       take: 100,
-      include: { thatday: { include: { day: true } } },
     });
-    const out = courses.map((c) => ({
-      ...c,
-      days: (c.thatday || []).map((tc) => tc.day.day),
-    }));
-    return res.json({ ok: true, data: out });
+    return res.json({ ok: true, data: courses });
   } catch (err) {
     console.error(err);
     res
@@ -298,7 +253,6 @@ router.get("/:userId/:courseId", requireAuth, async (req, res) => {
   try {
     const course = await prisma.course.findUnique({
       where: { id: courseId },
-      include: { thatday: { include: { day: true } } },
     });
     if (!course) return res.status(404).json({ error: "Course not found." });
     if (course.userId !== userId)
@@ -309,11 +263,7 @@ router.get("/:userId/:courseId", requireAuth, async (req, res) => {
       return res
         .status(403)
         .json({ error: "You do not have permission to view this course." });
-    const out = {
-      ...course,
-      days: (course.thatday || []).map((tc) => tc.day.day),
-    };
-    res.json({ ok: true, data: out });
+    res.json({ ok: true, data: course });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || "Unexpected server error." });
